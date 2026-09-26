@@ -497,7 +497,6 @@ footer{padding-block:40px 60px;border-top:1px solid var(--line-soft);font-family
         <g fill="#141A22" stroke="rgba(255,255,255,.18)"><rect x="720" y="72" width="150" height="36" rx="3"/><rect x="720" y="142" width="150" height="36" rx="3"/></g>
         <g font-family="Space Grotesk, Inter, sans-serif" font-size="14" fill="#EAEEF3" text-anchor="middle"><text x="795" y="95">Point head</text><text x="795" y="165">Contact head</text></g>
         <g font-family="JetBrains Mono, monospace" font-size="14"><text x="912" y="95" fill="#4FE6D2">Ĥₜ₊₁:ₜ₊H</text><text x="912" y="165" fill="#FF8E73">ĉₜ₊₁:ₜ₊H</text></g>
-        <text x="795" y="210" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#6E7A85">contact head reads detached features</text>
       </svg>
     </div>
     <div class="eq">𝓛 = 𝓛<sub>act</sub> + λ 𝓛<sub>ct</sub> <span class="m">&nbsp;·&nbsp; rectified flow + <span class="c">contact BCE</span></span></div>
@@ -985,7 +984,7 @@ fetch("data/index.json").then(r => r.json()).then(idx => { INDEX = idx; select()
       const far = Math.max(0, Math.abs(sv) - HOLD), turn = ease(clamp(far / 0.45));
       const H0 = Math.PI / 6;                                                // the held pose: palms turned 30°
       const th = sv > 0 ? H0 - (0.5 * Math.PI + H0) * turn : H0 + (Math.PI - H0) * turn;   // coming: from the side; leaving: toward the back
-      L.tilt.position.set(-0.092, -0.004 - (1 - inT) * 0.1, 0); R.tilt.position.set(0.068, -0.004 - (1 - inT) * 0.1, 0);   // side by side; Wuji's thumb reaches right
+      L.tilt.position.set(-0.092, 0.014 - (1 - inT) * 0.1, 0); R.tilt.position.set(0.068, 0.014 - (1 - inT) * 0.1, 0);   // side by side; Wuji's thumb reaches right
       for (const T of [L, R]) T.spin.rotation.y = th;
       for (const g of [mano, wuji]) g.traverse(o => { if (o.material && o.isMesh) { o.material.transparent = inT < 1; o.material.opacity = inT; } });
       labs.forEach(l => l.classList.toggle("on", inT > 0.7));
