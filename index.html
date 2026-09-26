@@ -80,8 +80,9 @@ em.hl{font-style:normal;color:var(--accent-l)}
 .authors .lbl{font-family:var(--mono);font-size:.66rem;letter-spacing:.22em;text-transform:uppercase;color:var(--text-mute);margin-bottom:6px}
 .authors .who{font-family:var(--display);font-size:1.2rem}
 .authors .venue{color:var(--text-soft);font-size:.92rem;margin-top:4px}
-.links{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
-@media (max-width:760px){.links{justify-content:flex-start}}
+.links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;justify-self:end;width:min(100%,520px)}
+.links .btn{justify-content:center;white-space:nowrap}
+@media (max-width:760px){.links{justify-self:start;grid-template-columns:repeat(2,minmax(0,1fr))}}
 .btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.78rem;letter-spacing:.06em;
   padding:10px 16px;border:1px solid var(--line);border-radius:3px;color:var(--text);background:rgba(255,255,255,.02);transition:border-color .15s,background .15s}
 .btn:hover{border-color:var(--accent);background:rgba(255,90,60,.08);color:var(--text)}
@@ -370,8 +371,10 @@ footer{padding-block:40px 60px;border-top:1px solid var(--line-soft);font-family
       </div>
       <div class="links">
         <a class="btn" href="#paper" aria-disabled="true"><span class="k">§</span> Paper · soon</a>
+        <a class="btn" href="#code" aria-disabled="true"><span class="k">&lt;/&gt;</span> Code · soon</a>
         <a class="btn" href="#viewer"><span class="k">◆</span> 3D explorer</a>
         <a class="btn" href="#results"><span class="k">▲</span> Results</a>
+        <a class="btn" href="#tasks"><span class="k">▶</span> Videos</a>
         <a class="btn" href="#bibtex"><span class="k">{}</span> BibTeX</a>
       </div>
     </div>
