@@ -342,7 +342,7 @@ tbody tr:last-child td{border-bottom:0}
 pre.bib{font-family:var(--mono);font-size:.8rem;color:var(--text-soft);background:var(--bg-1);border:1px solid var(--line);padding:18px 20px;overflow-x:auto;margin:0;line-height:1.6}
 .copy{margin-top:10px}
 footer{padding-block:40px 60px;border-top:1px solid var(--line-soft);font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-mute)}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}.fade-in{opacity:1;transform:none}}
+
 </style>
 
 <style>[hidden]{display:none!important}img{max-width:100%}body{margin:0}</style>
@@ -649,7 +649,7 @@ footer{padding-block:40px 60px;border-top:1px solid var(--line-soft);font-family
 
 // reveal-on-scroll + counters (the SpaCeFormer page's motion); anything already on screen shows at once
 (function () {
-  const els = document.querySelectorAll(".fade-in"), reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const els = document.querySelectorAll(".fade-in"), reduce = false;
   if (reduce || !("IntersectionObserver" in window)) { els.forEach(e => e.classList.add("visible")); }
   else { const io = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting) { en.target.classList.add("visible"); io.unobserve(en.target); } }), {threshold: 0.05});
     els.forEach(e => { const r = e.getBoundingClientRect(); if (r.top < innerHeight && r.bottom > 0) e.classList.add("visible"); else io.observe(e); }); }
@@ -689,6 +689,8 @@ footer{padding-block:40px 60px;border-top:1px solid var(--line-soft);font-family
   const wants = new Set();
   function want(v, on) { if (on) { wants.add(v); prepare(v).then(() => { if (wants.has(v)) v.play().catch(() => {}); }); } else { wants.delete(v); v.pause(); } }
   window.__vidWant = want; window.__vidPrepare = prepare;
+  const retry = () => { wants.forEach(v => v.play().catch(() => {})); const r = document.getElementById("rgb"); if (r && r.paused && window.__viewerPlaying) r.play().catch(() => {}); };
+  for (const ev of ["pointerdown", "touchstart", "keydown", "scroll", "wheel"]) addEventListener(ev, retry, {passive: true});
   if (!("IntersectionObserver" in window)) { vids.forEach(v => want(v, !v.closest("[hidden]"))); return; }
   const io = new IntersectionObserver(es => es.forEach(e => want(e.target, e.isIntersecting && !e.target.closest("[hidden]"))), {threshold: 0.25});
   vids.forEach(v => io.observe(v));
@@ -880,7 +882,7 @@ const playBtn = $("play"); let playing = false, acc = 0, last = 0;
 // playback runs on its own 15 Hz timer (a hidden or throttled animation frame must not stall it); show() renders directly
 let timer = null;
 function tick() { if (!cur || !playing) return; fi = (fi + 1) % cur.F; show(); }
-function setPlay(p) { playing = p; clearInterval(timer); timer = p ? setInterval(tick, 1000 / (cur ? cur.fps : 15)) : null; const v = $("rgb"); try { p ? v.play().catch(() => {}) : v.pause(); } catch (e) {} playBtn.textContent = p ? "❚❚" : "▶"; playBtn.setAttribute("aria-label", p ? "Pause" : "Play"); }
+function setPlay(p) { playing = p; window.__viewerPlaying = p; clearInterval(timer); timer = p ? setInterval(tick, 1000 / (cur ? cur.fps : 15)) : null; const v = $("rgb"); try { p ? v.play().catch(() => {}) : v.pause(); } catch (e) {} playBtn.textContent = p ? "❚❚" : "▶"; playBtn.setAttribute("aria-label", p ? "Pause" : "Play"); }
 playBtn.addEventListener("click", () => { if (cur && !playing && fi >= cur.F - 1) fi = 0; setPlay(!playing); });
 document.addEventListener("keydown", e => { if (!cur || (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) && e.target.type !== "range")) return;
   if (e.key === "ArrowLeft") { setPlay(false); seek(fi - 1); e.preventDefault(); } if (e.key === "ArrowRight") { setPlay(false); seek(fi + 1); e.preventDefault(); } });
@@ -894,7 +896,7 @@ function loop(ts) {
   if (lost) return;
   controls.update(); renderer.render(scene, camera);
 }
-if (!matchMedia("(prefers-reduced-motion: reduce)").matches) setPlay(true);
+setPlay(true);
 requestAnimationFrame(loop);
 fetch("data/index.json").then(r => r.json()).then(idx => { INDEX = idx; select(); }).catch(() => { $("loading").textContent = "Could not load the episode list — refresh to retry."; });
 
@@ -906,7 +908,7 @@ fetch("data/index.json").then(r => r.json()).then(idx => { INDEX = idx; select()
 // palm frame (x: wrist → middle MCPs, z: palm normal on the flexion side), plus contact arrows.
 (function () {
   if (!window.THREE) return;
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const reduce = false;   // motion always on, regardless of the OS "reduce motion" setting
   const b64 = (s, T) => { const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new T(u.buffer); };
   const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x)), ease = t => 1 - Math.pow(1 - t, 3);
   const hands = fetch("media/hands.json").then(r => r.json());
