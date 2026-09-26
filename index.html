@@ -1,0 +1,1037 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ConAct: Contact as Action</title>
+<meta name="description" content="ConAct: Contact as Action for learning multi-fingered robot hand policies from human videos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* ConAct — contact lab. Near-black instrument deck, contact red + HUD cyan, point grid.
+   Single dark look on purpose (the page is a point-cloud viewer); every colour is painted explicitly. */
+:root{
+  color-scheme: dark;
+  --bg:#0A0C10; --bg-1:#0F131A; --bg-2:#141A22; --bg-3:#1B232E;
+  --text:#EAEEF3; --text-soft:#AEB8C4; --text-mute:#6E7A85;
+  --accent:#FF5A3C; --accent-d:#DF4A33; --accent-l:#FF8E73;
+  --cyan:#4FE6D2;
+  --left:#B39BFF; --right:#3EE0A8;
+  --obj0:#FF6A13; --obj1:#2F8FFF; --obj2:#F2B705;
+  --line:rgba(255,255,255,.10); --line-soft:rgba(255,255,255,.055);
+  --glow:rgba(255,90,60,.45);
+  --display:"Space Grotesk","Inter",system-ui,sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono","SFMono-Regular",Menlo,monospace;
+  --maxw:1200px;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.62;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;position:relative}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-2;
+  background:radial-gradient(1000px 600px at 80% -10%,rgba(255,90,60,.13),transparent 60%),
+             radial-gradient(900px 600px at 5% 5%,rgba(79,230,210,.06),transparent 55%),var(--bg)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.6;
+  background-image:radial-gradient(rgba(255,255,255,.055) 1px,transparent 1.4px);background-size:24px 24px;
+  -webkit-mask-image:linear-gradient(to bottom,#000,transparent 85%);mask-image:linear-gradient(to bottom,#000,transparent 85%)}
+::selection{background:var(--accent);color:#fff}
+a{color:var(--accent-l);text-decoration:none}
+a:hover{color:var(--accent)}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.wrap{max-width:var(--maxw);margin:0 auto;padding-inline:clamp(16px,4vw,44px)}
+section{padding-block:88px;border-top:1px solid var(--line-soft)}
+h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:-.02em;line-height:1.06;margin:0;text-wrap:balance}
+h2{font-size:clamp(2rem,4.4vw,3.2rem);letter-spacing:-.03em;margin-bottom:24px}
+h3{font-size:1.25rem;margin-bottom:10px}
+p{margin:0 0 16px}
+.mono{font-family:var(--mono)}
+.sec-mark{font-family:var(--mono);color:var(--cyan);letter-spacing:.24em;text-transform:uppercase;font-size:.7rem;
+  display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.sec-mark::before{content:"";width:8px;height:8px;background:var(--cyan);box-shadow:0 0 10px var(--cyan);transform:rotate(45deg);flex:none}
+.sec-mark::after{content:"";flex:1;height:1px;background:linear-gradient(to right,var(--line),transparent)}
+.lede{color:var(--text-soft);max-width:68ch;font-size:1.05rem}
+.lede b,.lede strong{color:var(--text);font-weight:600}
+em.hl{font-style:normal;color:var(--accent-l)}
+
+/* ── hero ─────────────────────────────────────── */
+.hero{padding-block:40px 64px;position:relative}
+.meta{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:.68rem;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--text-mute);padding-bottom:14px;border-bottom:1px solid var(--line-soft);margin-bottom:44px}
+.meta .live{color:var(--cyan)}
+.meta .live::before{content:"●";margin-right:8px;font-size:.65em;vertical-align:middle;animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.kicker{font-family:var(--mono);font-size:.78rem;letter-spacing:.2em;text-transform:uppercase;color:var(--accent-l);margin-bottom:18px}
+.title{font-family:var(--display);font-weight:700;font-size:clamp(4rem,14vw,10.5rem);line-height:.86;letter-spacing:-.055em;margin:0 0 28px}
+.title .act{color:var(--accent);text-shadow:0 0 34px var(--glow)}
+.title .dot{color:var(--cyan)}
+.sub{font-family:var(--display);font-size:clamp(1.15rem,2.2vw,1.6rem);color:var(--text-soft);max-width:30ch;line-height:1.32;letter-spacing:-.01em;margin-bottom:32px}
+.sub b{color:var(--text);font-weight:500}
+.hero-foot{display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:end;border-top:1px solid var(--line);padding-top:26px}
+@media (max-width:760px){.hero-foot{grid-template-columns:1fr;gap:24px}}
+.authors .lbl{font-family:var(--mono);font-size:.66rem;letter-spacing:.22em;text-transform:uppercase;color:var(--text-mute);margin-bottom:6px}
+.authors .who{font-family:var(--display);font-size:1.2rem}
+.authors .venue{color:var(--text-soft);font-size:.92rem;margin-top:4px}
+.links{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}
+@media (max-width:760px){.links{justify-content:flex-start}}
+.btn{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:.78rem;letter-spacing:.06em;
+  padding:10px 16px;border:1px solid var(--line);border-radius:3px;color:var(--text);background:rgba(255,255,255,.02);transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--accent);background:rgba(255,90,60,.08);color:var(--text)}
+.btn .k{color:var(--accent)}
+.btn[aria-disabled="true"]{color:var(--text-mute);cursor:default}
+.btn[aria-disabled="true"]:hover{border-color:var(--line);background:rgba(255,255,255,.02)}
+
+/* ── HUD stats ───────────────────────────────── */
+.hud{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);margin-top:48px;background:rgba(15,19,26,.6)}
+.hud>div{padding:20px 22px;border-right:1px solid var(--line)}
+.hud>div:last-child{border-right:0}
+@media (max-width:860px){.hud{grid-template-columns:repeat(2,1fr)}.hud>div:nth-child(2){border-right:0}.hud>div:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+.hud .i{font-family:var(--mono);font-size:.64rem;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan)}
+.hud .v{font-family:var(--display);font-size:clamp(2rem,4vw,2.8rem);font-weight:600;letter-spacing:-.03em;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
+.hud .v small{font-size:.45em;color:var(--text-soft);font-weight:500;letter-spacing:0;margin-left:4px}
+.hud .d{color:var(--text-soft);font-size:.84rem;margin-top:2px}
+
+/* ── viewer ──────────────────────────────────── */
+.viewer{border:1px solid var(--line);background:var(--bg-1);margin-top:28px}
+.vbar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.seg button{font-family:var(--mono);font-size:.74rem;letter-spacing:.04em;background:transparent;color:var(--text-soft);border:0;border-right:1px solid var(--line);padding:7px 12px;cursor:pointer}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:rgba(255,90,60,.14);color:var(--text)}
+.seg button:hover{color:var(--text)}
+.vgrid{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(0,1fr)}
+@media (max-width:900px){.vgrid{grid-template-columns:1fr}}
+.stage{position:relative;aspect-ratio:16/10;max-width:100%;background:#07090c;border-right:1px solid var(--line)}
+@media (max-width:900px){.stage{border-right:0;border-bottom:1px solid var(--line)}}
+.stage canvas{display:block;width:100%;height:100%}
+.hudtag{position:absolute;font-family:var(--mono);font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-soft);pointer-events:none}
+.hudtag.tl{left:12px;top:10px}.hudtag.tr{right:12px;top:10px;text-align:right}.hudtag.bl{left:12px;bottom:10px}
+.hudtag b{color:var(--cyan);font-weight:500}
+.loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.78rem;color:var(--text-mute);letter-spacing:.14em;text-transform:uppercase;background:rgba(7,9,12,.7)}
+.loading[hidden]{display:none}
+.hudtag .err{color:#ff8e73;margin-left:10px;text-transform:none;letter-spacing:0}
+.hudtag .err[hidden]{display:none}
+.side{display:flex;flex-direction:column;min-width:0}
+.side video{width:100%;display:block;aspect-ratio:16/9;background:#07090c;border-bottom:1px solid var(--line);object-fit:cover}
+.sidebody{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.lab{font-family:var(--mono);font-size:.64rem;letter-spacing:.2em;text-transform:uppercase;color:var(--text-mute)}
+.prompt{font-family:var(--mono);font-size:.84rem;color:var(--text);background:var(--bg-2);border:1px solid var(--line-soft);padding:10px 12px;line-height:1.5}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--text-soft)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+
+.ramp-l{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.64rem;color:var(--text-mute);margin-top:4px;letter-spacing:.1em;text-transform:uppercase}
+.timeline{padding:12px 14px 14px;border-top:1px solid var(--line)}
+.tl-row{display:flex;gap:12px;align-items:center}
+.play{flex:none;width:36px;height:36px;border:1px solid var(--line);border-radius:3px;background:transparent;color:var(--text);cursor:pointer;font-size:.9rem}
+.play:hover{border-color:var(--accent)}
+.heat-wrap{flex:1;min-width:0;position:relative}
+#heat{display:block;width:100%;height:84px;cursor:pointer;image-rendering:pixelated;background:#101419}
+.heat-l{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.64rem;color:var(--text-mute);margin-top:6px;letter-spacing:.08em}
+.heat-rows{flex:none;display:flex;flex-direction:column;justify-content:space-around;height:84px;font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase}
+.heat-rows span:first-child{color:var(--left)}.heat-rows span:last-child{color:var(--right)}
+.opt{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:.8rem;color:var(--text-soft)}
+.opt label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.opt input[type=checkbox]{accent-color:var(--accent)}
+.note{font-size:.8rem;color:var(--text-mute);margin-top:10px}
+
+
+.stage{background:#000}
+.camctl{position:absolute;right:10px;bottom:8px;display:flex;gap:10px;align-items:center;background:rgba(7,9,12,.72);border:1px solid var(--line);padding:5px 8px;border-radius:3px}
+.mini{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;background:transparent;color:var(--text);border:1px solid var(--line);border-radius:2px;padding:4px 8px;cursor:pointer}
+.mini:hover{border-color:var(--accent)}
+.zoom{display:flex;gap:6px;align-items:center;font-family:var(--mono);font-size:.64rem;color:var(--text-soft);text-transform:uppercase;letter-spacing:.1em}
+.zoom input{width:90px}
+.zoom b{font-weight:500;color:var(--cyan);min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
+.tl-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+#rFrame{width:100%}
+.heat-box{display:flex;gap:8px;align-items:stretch}
+.heat-box canvas{flex:1;min-width:0}
+#heat{height:70px;background:#161a21}
+.heat-rows{height:70px}
+.heat-l{margin-top:0}
+.disp{border-top:1px solid var(--line-soft);padding-top:10px}
+.disp summary{cursor:pointer;font-family:var(--mono);font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--text-soft)}
+.disp[open] summary{margin-bottom:10px}
+.sl{display:grid;grid-template-columns:92px 1fr 56px;gap:8px;align-items:center;font-size:.78rem;color:var(--text-soft);margin-bottom:6px}
+.sl input{width:100%}
+.sl b{font-family:var(--mono);font-weight:500;font-size:.72rem;color:var(--text);text-align:right;font-variant-numeric:tabular-nums}
+.legend .cr{flex-basis:100%;display:flex;align-items:center;gap:8px}
+.legend .cr em{display:inline-block;width:70px;height:8px;border-radius:1px;background:linear-gradient(to right,#161a21,#5c1d14 30%,#c2281d 65%,#ff6a4a)}
+
+
+/* ── range inputs: hairline track, small thumb ── */
+input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;height:16px;margin:0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:2px;border-radius:2px;background:linear-gradient(to right,var(--rc,var(--accent)) 0 var(--p,0%),rgba(255,255,255,.14) var(--p,0%) 100%)}
+input[type=range]::-moz-range-track{height:2px;border-radius:2px;background:rgba(255,255,255,.14)}
+input[type=range]::-moz-range-progress{height:2px;border-radius:2px;background:var(--rc,var(--accent))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;margin-top:-4.5px;background:var(--text);border:2px solid var(--rc,var(--accent));box-shadow:0 0 0 3px rgba(0,0,0,.35);transition:transform .12s}
+input[type=range]::-moz-range-thumb{width:8px;height:8px;border-radius:50%;background:var(--text);border:2px solid var(--rc,var(--accent))}
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.25)}
+input[type=range]:focus-visible{outline:none}
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px rgba(79,230,210,.45)}
+#rFrame{--rc:var(--cyan)}
+.play{width:34px;height:34px;border-radius:50%;font-size:.78rem;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.03)}
+.play:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* ── reveal on scroll (as on the SpaCeFormer page) ── */
+.fade-in{opacity:0;transform:translateY(24px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+.fade-in.visible{opacity:1;transform:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+.kicker{animation:fadeUp .9s cubic-bezier(.2,.7,.2,1) both}
+.title{animation:fadeUp .9s .08s cubic-bezier(.2,.7,.2,1) both}
+.sub{animation:fadeUp .9s .16s cubic-bezier(.2,.7,.2,1) both}
+.hero-foot{animation:fadeUp .9s .26s cubic-bezier(.2,.7,.2,1) both}
+.hud{animation:fadeUp .9s .36s cubic-bezier(.2,.7,.2,1) both}
+.t1 tbody tr:hover td{background:rgba(79,230,210,.05)}
+.t1 tbody tr.ours td{border-top:1px solid var(--accent);border-bottom:1px solid var(--accent)}
+.t1 tbody tr.ours td:first-child{border-left:3px solid var(--accent)}
+.t1 tbody tr.ours td.best,.t1 tbody tr.ours td.second{color:var(--text)}
+
+
+/* ── tasks + rollouts ── */
+.group{margin-top:34px;display:grid;gap:14px}
+.gh{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:8px}
+.gk{font-family:var(--display);font-size:1.15rem;font-weight:600}
+.gd{font-family:var(--mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-mute)}
+.tasks{display:grid;gap:12px;margin-top:0}
+.task .hd{display:flex;justify-content:space-between;gap:10px 18px;flex-wrap:wrap;align-items:baseline;margin-bottom:6px}
+.task .hd h3{font-size:1rem;margin:0}
+.task .p{font-family:var(--mono);font-size:.74rem;color:var(--text-soft)}
+.rolls{display:grid;gap:12px;margin-top:6px}
+.rolls.r4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.rolls.r2{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:900px){.rolls.r4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.rolls.r4,.rolls.r2{grid-template-columns:1fr}}
+.roll{margin:0}
+.rv{position:relative;aspect-ratio:16/9;max-width:100%;background:#07090c;border:1px solid var(--line);overflow:hidden}
+.rv video{width:100%;height:100%;object-fit:cover;display:block;filter:brightness(.74) contrast(1.25) saturate(1.1) sepia(.1)}
+.rv.pending{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-mute);background:repeating-linear-gradient(45deg,#0c0f14 0 10px,#10141a 10px 20px)}
+.vload{position:absolute;left:8px;bottom:6px;font-family:var(--mono);font-size:.62rem;color:var(--text-soft);background:rgba(0,0,0,.55);padding:1px 6px;border-radius:2px}
+.vload[hidden]{display:none}
+.rtag{position:absolute;right:8px;top:6px;font-family:var(--mono);font-size:.62rem;color:var(--text);background:rgba(0,0,0,.55);padding:1px 6px;border-radius:2px}
+.roll figcaption{font-family:var(--mono);font-size:.72rem;color:var(--text-soft);margin-top:6px}
+.ab{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:26px}
+@media (max-width:640px){.ab{grid-template-columns:1fr}}
+.ab figcaption{font-size:.8rem}
+b.ok{color:var(--right)} b.bad{color:var(--accent-l)}
+
+
+.t23{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:22px}
+@media (max-width:900px){.t23{grid-template-columns:1fr}}
+.t23 .tbl-wrap{margin-top:0}
+.t1 table.small{min-width:0}
+.t1 td.lft{text-align:left}
+
+
+/* ── task carousel ── */
+.car{position:relative;margin-top:28px;border:1px solid var(--line);background:var(--bg-1);padding:18px 64px 16px}
+@media (max-width:640px){.car{padding:14px 14px 56px}}
+.slide{display:grid;gap:12px}
+.slide[hidden]{display:none}
+.shd{display:flex;justify-content:space-between;gap:8px 18px;flex-wrap:wrap;align-items:flex-end}
+.shd h3{margin:4px 0 0;font-size:1.3rem}
+.stag{font-family:var(--mono);font-size:.64rem;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan)}
+.shd .p{font-family:var(--mono);font-size:.76rem;color:var(--text-soft)}
+.rv.big{aspect-ratio:16/9}
+.nav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:64px;border:1px solid var(--line);background:rgba(10,12,16,.8);color:var(--text);font-size:1.8rem;line-height:1;cursor:pointer;border-radius:3px;transition:border-color .15s,color .15s}
+.nav:hover{border-color:var(--accent);color:var(--accent-l)}
+.nav.prev{left:12px}.nav.next{right:12px}
+@media (max-width:640px){.nav{top:auto;bottom:10px;transform:none;height:36px}}
+.dots{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:14px}
+.dot{width:8px;height:8px;border-radius:50%;border:0;padding:0;background:rgba(255,255,255,.2);cursor:pointer}
+.dot[aria-current="true"]{background:var(--accent);width:22px;border-radius:4px}
+.cnt{font-family:var(--mono);font-size:.66rem;color:var(--text-mute);margin-left:10px;letter-spacing:.1em}
+
+
+/* ── scrolly abstract ── */
+.scrolly{position:relative}
+.abs-grid{display:grid;grid-template-columns:minmax(0,1fr) 520px;gap:40px;align-items:center}
+@media (max-width:900px){.abs-grid{grid-template-columns:1fr}}
+.abs-text{padding-block:0}
+.abs-text .lede{font-size:1.02rem}
+.abs-text .lede:last-child{margin-bottom:0}
+.abs-key{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:.7rem;color:var(--text-soft);margin-top:8px}
+.abs-key i,.pcap i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:-1px}
+.abs-vis{position:relative;width:520px;height:400px}
+@media (max-width:1060px){.abs-grid{grid-template-columns:1fr}.abs-vis{width:100%;max-width:520px;height:auto;aspect-ratio:13/10;justify-self:center}}
+
+.hstage{position:relative;width:100%;height:100%;border:1px solid var(--line);background:radial-gradient(ellipse at 50% 40%,#151b24 0%,#0a0d12 70%)}
+.hstage canvas,.pstage canvas{display:block;width:100%;height:100%}
+.hlab{position:absolute;left:16px;font-family:var(--mono);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;opacity:0;transition:opacity .4s}
+.hlab.top{bottom:12px;left:14px;color:#e9d9cc}.hlab.bot{bottom:12px;right:14px;left:auto;color:var(--text-soft)}.hlab.mid{top:12px;left:10px;right:10px;color:var(--cyan);text-align:center;letter-spacing:.1em;line-height:1.5}
+.hlab.on{opacity:1}
+.pstage{position:relative;aspect-ratio:4/3.2;max-width:100%;border:1px solid var(--line);background:radial-gradient(ellipse at 50% 35%,#18202a 0%,#0a0d12 72%);cursor:grab}
+.pcap{position:absolute;left:12px;right:12px;bottom:10px;display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:.64rem;color:var(--text-soft);letter-spacing:.06em}
+.pcap .hint{margin-left:auto;color:var(--text-mute)}
+
+
+.pcol{display:grid;gap:12px;grid-template-columns:240px 240px;align-self:center}
+.two.iv{align-items:center;margin-top:0;grid-template-columns:minmax(0,1fr) 492px}
+.two.iv .pstage{aspect-ratio:auto;width:240px;height:320px}
+@media (max-width:900px){.two.iv{grid-template-columns:1fr}.pcol{justify-self:center}}
+@media (max-width:520px){.pcol{grid-template-columns:1fr}.two.iv .pstage{width:100%;height:300px}}
+
+.ptop{position:absolute;left:12px;top:10px;font-family:var(--mono);font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text-soft)}
+.ramp2{display:inline-block;width:90px;height:8px;border-radius:1px;background:linear-gradient(to right,#2a2f38,#7a2413 35%,#e0381c 70%,#ffb08a)}
+
+/* ── method ──────────────────────────────────── */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--line);margin-top:34px}
+@media (max-width:860px){.steps{grid-template-columns:1fr}}
+.step{padding:24px 24px 26px;border-right:1px solid var(--line);position:relative}
+.step:last-child{border-right:0}
+@media (max-width:860px){.step{border-right:0;border-bottom:1px solid var(--line)}.step:last-child{border-bottom:0}}
+.step .n{font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;color:var(--accent-l);text-transform:uppercase}
+.step h3{margin-top:10px}
+.step p{color:var(--text-soft);font-size:.93rem;margin:0}
+.step .sym{font-family:var(--mono);font-size:.8rem;color:var(--cyan);margin-top:14px}
+.arch{margin-top:40px;border:1px solid var(--line);background:var(--bg-1);padding:22px;overflow-x:auto}
+.arch svg{display:block;min-width:720px;width:100%;height:auto}
+.eq{font-family:var(--mono);font-size:.95rem;color:var(--text);background:var(--bg-2);border-left:2px solid var(--accent);padding:14px 18px;margin:22px 0 0;overflow-wrap:anywhere}
+.eq .c{color:var(--accent-l)}.eq .m{color:var(--text-mute)}
+
+/* ── results ─────────────────────────────────── */
+.charts{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:30px}
+@media (max-width:900px){.charts{grid-template-columns:1fr}}
+.chart{border:1px solid var(--line);background:var(--bg-1);padding:16px 14px 10px}
+.chart h3{font-size:1.05rem;margin:0}
+.chart .k{font-family:var(--mono);font-size:.64rem;letter-spacing:.18em;text-transform:uppercase;color:var(--text-mute)}
+.chart svg{display:block;width:100%;height:auto;margin-top:8px}
+.keyrow{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:22px;font-family:var(--mono);font-size:.76rem;color:var(--text-soft)}
+.keyrow span{display:inline-flex;align-items:center;gap:8px}
+.keyrow i{width:18px;height:3px;display:inline-block;border-radius:2px}
+.tbl-wrap{overflow-x:auto;margin-top:34px;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-variant-numeric:tabular-nums}
+th,td{padding:11px 16px;text-align:right;border-bottom:1px solid var(--line-soft);font-size:.92rem}
+th{font-family:var(--mono);font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-mute);font-weight:500;background:var(--bg-1)}
+th:first-child,td:first-child{text-align:left}
+tr.ours td{color:var(--text);font-weight:600;background:rgba(255,90,60,.07)}
+.t1 table{min-width:860px}
+.t1 th,.t1 td{padding:9px 10px;text-align:center}
+.t1 th:first-child,.t1 td:first-child{text-align:left;padding-left:16px}
+.t1 .g{border-left:1px solid var(--line)}
+.t1 thead tr.h0 th{color:var(--text-soft);border-bottom:0;padding-bottom:2px}
+.t1 thead tr.h1 th{color:var(--text);font-family:var(--display);font-size:.86rem;letter-spacing:0;text-transform:none;padding-top:4px}
+.t1 thead tr.h1 th:not(:first-child){border-bottom:1px solid var(--line)}
+td.best{background:rgba(62,224,168,.20);color:var(--text);font-weight:700}
+td.second{background:rgba(62,224,168,.08);color:var(--text)}
+.kb,.ks{padding:1px 6px;border-radius:2px;color:var(--text)}
+.kb{background:rgba(62,224,168,.20);font-weight:700}.ks{background:rgba(62,224,168,.08)}
+tr.ours td:first-child{color:var(--accent)}
+td{color:var(--text-soft)}
+tbody tr:last-child td{border-bottom:0}
+
+/* ── injection + tasks ───────────────────────── */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;margin-top:10px}
+@media (max-width:860px){.two{grid-template-columns:1fr}}
+.plate{background:#F3F4F6;border:1px solid var(--line);padding:18px;border-radius:2px}
+.plate img{display:block;width:100%;height:auto}
+.plate .cap{font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:#4b5563;margin-top:10px;display:flex;gap:16px;flex-wrap:wrap}
+.plate .cap i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.facts{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:10px}
+.facts li{display:grid;grid-template-columns:120px 1fr;gap:14px;font-size:.92rem;color:var(--text-soft);padding-bottom:10px;border-bottom:1px solid var(--line-soft)}
+.facts li b{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);font-weight:500;padding-top:2px}
+.tasks{display:grid;gap:22px;margin-top:30px}
+.task figure{margin:0}
+.task .hd{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline;margin-bottom:10px}
+.task .hd h3{margin:0}
+.task .tag{font-family:var(--mono);font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--text-mute)}
+.task .p{font-family:var(--mono);font-size:.8rem;color:var(--text-soft)}
+.strip{overflow-x:auto;border:1px solid var(--line)}
+.strip img{display:block;min-width:720px;width:100%;height:auto}
+pre.bib{font-family:var(--mono);font-size:.8rem;color:var(--text-soft);background:var(--bg-1);border:1px solid var(--line);padding:18px 20px;overflow-x:auto;margin:0;line-height:1.6}
+.copy{margin-top:10px}
+footer{padding-block:40px 60px;border-top:1px solid var(--line-soft);font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-mute)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}.fade-in{opacity:1;transform:none}}
+</style>
+
+<style>[hidden]{display:none!important}img{max-width:100%}body{margin:0}</style>
+</head>
+<body>
+<main>
+<header class="hero">
+  <div class="wrap">
+    <div class="meta"><span class="live">Contact · as · action</span><span>Anonymous submission · ICLR 2027 · under review</span></div>
+    <div class="kicker">Multi-fingered robot hands from human videos</div>
+    <h1 class="title">Con<span class="act">Act</span></h1>
+    <p class="sub">Human videos show <b>where</b> the hands move, but not their <b>contact</b>. ConAct predicts both, 3D keypoints and a contact intensity at each, as one action shared by human and robot hands.</p>
+    <div class="hero-foot">
+      <div class="authors">
+        <div class="lbl">Authors</div>
+        <div class="who">Anonymous authors</div>
+        <div class="venue">Paper under double-blind review</div>
+      </div>
+      <div class="links">
+        <a class="btn" href="#paper" aria-disabled="true"><span class="k">§</span> Paper · soon</a>
+        <a class="btn" href="#viewer"><span class="k">◆</span> 3D explorer</a>
+        <a class="btn" href="#results"><span class="k">▲</span> Results</a>
+        <a class="btn" href="#bibtex"><span class="k">{}</span> BibTeX</a>
+      </div>
+    </div>
+    <div class="hud" aria-label="Headline numbers">
+      <div><div class="i">Few-shot success</div><div class="v"><span data-target="41.7" data-dec="1">41.7</span><small>%</small></div><div class="d">average over 3 tasks with only 20 teleoperated demos in total (10%)</div></div>
+      <div><div class="i">Over the best VLA</div><div class="v"><span data-target="2.4" data-dec="1">2.4</span><small>×</small></div><div class="d">average success at 10%: VITRA 17.2% → ConAct 41.7%</div></div>
+      <div><div class="i">Data collection</div><div class="v"><span data-target="6" data-dec="0">6</span><small>× faster</small></div><div class="d">200 human demos in 0.5 person-hours vs. 3 person-hours of teleoperation</div></div>
+      <div><div class="i">Spatial robustness</div><div class="v"><span data-target="56.3" data-dec="1">56.3</span><small>%</small></div><div class="d">Pick &amp; Place success kept with an unseen object on the table; VITRA falls from 39.1% to 6.3%</div></div>
+    </div>
+  </div>
+</header>
+
+<section id="abstract" class="scrolly">
+  <div class="wrap">
+    <div class="sec-mark">§ 0 · Abstract</div>
+    <h2>The missing half of a demonstration.</h2>
+    <div class="abs-grid">
+      <div class="abs-text">
+        <p class="lede">Human videos show <b>where</b> the hands move, but not <b>how firmly</b> they press, and this missing contact is why policies pretrained on them still need many teleoperated demonstrations.</p><p class="lede"><b>ConAct</b> (<b>Con</b>tact as <b>Act</b>ion) extends the point-based action shared by human and robot hands with a <em class="hl">contact intensity at each 3D keypoint</em>, labeled automatically on about 1M egocentric episodes. The policy learns from human videos how firmly to press, and at deployment the predicted contact becomes force along the normals of the robot hand, without any force sensing.</p><p class="lede">With only <b>20</b> teleoperated demonstrations in total, ConAct more than doubles the average success rate of the strongest VLA (17.2% → 41.7%) and already matches a baseline trained with ten times more. On a bimanual task, it more than quadruples the best baseline with only five teleoperated demonstrations (12.5% → 53.1%).</p>
+      </div>
+      <div class="abs-vis">
+        <div class="hstage" id="hStage">
+        <canvas id="hCanvas" aria-label="A human MANO hand above a Wuji robot hand, both in the same pose, with contact arrows at the fingertips and the palm"></canvas>
+        <span class="hlab top" id="hLabTop">Human · MANO</span>
+        <span class="hlab bot" id="hLabBot">Robot · Wuji Hand 2</span>
+        <span class="hlab mid" id="hLabMid">Unified Representation · 21 Keypoints + per-point contact</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="viewer">
+  <div class="wrap">
+    <div class="sec-mark">§ I · Explorer</div>
+    <h2>Hand–object interaction, with contact, in 3D.</h2>
+    <p class="lede">Each episode is the scene as the policy sees it: the points of the task objects, the 21 keypoints of both hands, and a contact intensity at every keypoint that tints the hand and the object surface it touches. On <b>human</b> videos the contact is a label from the hand tracker; on the <b>robot</b> it is predicted by ConAct. Drag to rotate freely, scroll to zoom, right-drag to pan.</p>
+    <div class="viewer fade-in">
+      <div class="vbar">
+        <div class="seg" id="taskSeg" role="group" aria-label="Task">
+          <button type="button" id="t-ball" data-task="ball" aria-pressed="false">Ball</button>
+          <button type="button" id="t-bottle" data-task="bottle" aria-pressed="false">Bottle</button>
+          <button type="button" id="t-box" data-task="box" aria-pressed="false">Box</button>
+          <button type="button" id="t-doll" data-task="doll" aria-pressed="false">Doll</button>
+          <button type="button" id="t-flip" data-task="flip_plastic_bag" aria-pressed="false">Flip bag</button>
+          <button type="button" id="t-tissue" data-task="assemble_tissue" aria-pressed="true">Tissue roll</button>
+        </div>
+        <div class="seg" id="kindSeg" role="group" aria-label="Embodiment">
+          <button type="button" id="k-human" data-kind="human" aria-pressed="true">Human · labels</button>
+          <button type="button" id="k-robot" data-kind="robot" aria-pressed="false">Robot · predicted</button>
+        </div>
+      </div>
+      <div class="vgrid">
+        <div class="stage" id="stage">
+          <canvas id="gl" aria-label="3D point cloud of the scene with the hands; keypoints and touched object points are tinted by contact"></canvas>
+          <div class="hudtag tl"><b id="tagTask">–</b> · <span id="tagKind">human · label</span></div>
+          <div class="hudtag tr"><span id="tagT">t = 0.0 s</span><br><span id="tagF">frame 0</span></div>
+          <div class="hudtag bl">points <b id="tagN">–</b> <span id="tagErr" class="err" hidden></span></div>
+          <div class="camctl">
+            <button type="button" class="mini" id="bEgo" title="Back to the ego camera">Ego view</button>
+            <label class="zoom"><span>Zoom</span><input type="range" id="rZoom" min="25" max="400" step="1" value="100" aria-label="Zoom"><b id="vZoom">100%</b></label>
+          </div>
+          <div class="loading" id="loading">Loading episode…</div>
+        </div>
+        <div class="side">
+          <video id="rgb" muted playsinline preload="auto" aria-label="Ego camera video of the episode"></video>
+          <div class="sidebody">
+            <div><div class="lab">Instruction</div><div class="prompt" id="prompt">–</div></div>
+            <div><div class="lab" style="margin-bottom:6px">Legend</div><div class="legend" id="legend"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="timeline">
+        <div class="tl-row">
+          <button type="button" class="play" id="play" aria-label="Play">▶</button>
+          <div class="tl-main">
+            <input type="range" id="rFrame" min="0" max="0" step="1" value="0" aria-label="Frame">
+            <div class="heat-box">
+              <div class="heat-rows"><span>L</span><span>R</span></div>
+              <canvas id="heat" aria-label="Contact of the 21 keypoints of each hand over time; click to seek"></canvas>
+            </div>
+            <div class="heat-l"><span>0 s</span><span id="heatNow">–</span><span id="heatEnd">–</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="note">15 Hz, the same scene settings as the paper figures (6 mm voxels, up to 20k points, 0.6 m crop around the hands). Robot contact is ConAct's prediction on a recorded teleoperated episode, shown ×1.8 by default.</p>
+  </div>
+</section>
+
+<section id="method">
+  <div class="wrap">
+    <div class="sec-mark">§ II · Method</div>
+    <h2>Points in, keypoints and contact out.</h2>
+    <p class="lede">Everything lives in the metric 3D space of the ego camera, so a trajectory demonstrated by a human hand is directly a target for the robot hand.</p>
+    <div class="steps fade-in">
+      <div class="step"><div class="n">Step 1 · label</div><h3>Contact from ordinary video</h3>
+        <p>A video hand tracker reconstructs each hand's mesh with a contact intensity per vertex; we pool it to the 21 MANO keypoints. No tactile glove, no manual annotation — for about 1M egocentric episodes and our own demos alike.</p>
+        <div class="sym">c<sub>t</sub> ∈ [0,1]<sup>21</sup> per hand</div></div>
+      <div class="step"><div class="n">Step 2 · learn</div><h3>One action for both hands</h3>
+        <p>A diffusion transformer reads object points, both hands' keypoints and the instruction, and predicts the next 16 keypoint positions with a contact intensity at each — in pretraining and fine-tuning alike.</p>
+        <div class="sym">(Ĥ, ĉ)<sub>t+1:t+H</sub> = π<sub>θ</sub>(H<sub>t</sub>, O<sub>t</sub>, ℓ)</div></div>
+      <div class="step"><div class="n">Step 3 · deploy</div><h3>Contact becomes force</h3>
+        <p>At deployment each keypoint target moves along the direction in which its finger closes, in proportion to its contact. Inverse kinematics tracks the displaced targets, so the hand presses into the object.</p>
+        <div class="sym">x̃<sub>k</sub> = x̂<sub>k</sub> + δ ĉ<sub>k</sub> n<sub>k</sub></div></div>
+    </div>
+    <div class="arch fade-in" aria-label="Architecture diagram">
+      <svg viewBox="0 0 1000 250" role="img" aria-label="Hand points, object points and the instruction are encoded into tokens, a diffusion transformer attends to them with 16 action tokens, and a point head and a contact head predict future keypoints and contact">
+        <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#6E7A85"/></marker></defs>
+        <g font-family="JetBrains Mono, monospace" font-size="13" fill="#AEB8C4">
+          <text x="10" y="58" fill="#B39BFF">Hₜ  hand points</text>
+          <text x="10" y="108" fill="#FF6A13">Oₜ  object points</text>
+          <text x="10" y="158" fill="#EAEEF3">ℓ   instruction</text>
+          <text x="10" y="208" fill="#6E7A85">H action tokens</text>
+        </g>
+        <g fill="#141A22" stroke="rgba(255,255,255,.18)">
+          <rect x="190" y="36" width="150" height="34" rx="3"/><rect x="190" y="86" width="150" height="34" rx="3"/><rect x="190" y="136" width="150" height="34" rx="3"/>
+        </g>
+        <g font-family="Space Grotesk, Inter, sans-serif" font-size="14" fill="#EAEEF3" text-anchor="middle">
+          <text x="265" y="58">Hand MLP</text><text x="265" y="108">PointNet</text><text x="265" y="158">Text encoder</text>
+        </g>
+        <g stroke="#6E7A85" stroke-width="1.4" fill="none" marker-end="url(#ar)">
+          <path d="M150 53 H186"/><path d="M160 103 H186"/><path d="M130 153 H186"/>
+          <path d="M340 53 H400"/><path d="M340 103 H400"/><path d="M340 153 H400"/><path d="M150 203 H400"/>
+          <path d="M660 90 H716"/><path d="M660 160 H716"/>
+          <path d="M870 90 H906"/><path d="M870 160 H906"/>
+        </g>
+        <rect x="404" y="28" width="256" height="196" rx="4" fill="rgba(255,90,60,.08)" stroke="#FF5A3C"/>
+        <text x="532" y="118" text-anchor="middle" font-family="Space Grotesk, Inter, sans-serif" font-size="30" font-weight="600" fill="#EAEEF3">DiT</text>
+        <text x="532" y="146" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" fill="#AEB8C4">rectified-flow transformer</text>
+        <g fill="#141A22" stroke="rgba(255,255,255,.18)"><rect x="720" y="72" width="150" height="36" rx="3"/><rect x="720" y="142" width="150" height="36" rx="3"/></g>
+        <g font-family="Space Grotesk, Inter, sans-serif" font-size="14" fill="#EAEEF3" text-anchor="middle"><text x="795" y="95">Point head</text><text x="795" y="165">Contact head</text></g>
+        <g font-family="JetBrains Mono, monospace" font-size="14"><text x="912" y="95" fill="#4FE6D2">Ĥₜ₊₁:ₜ₊H</text><text x="912" y="165" fill="#FF8E73">ĉₜ₊₁:ₜ₊H</text></g>
+        <text x="795" y="210" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="#6E7A85">contact head reads detached features</text>
+      </svg>
+    </div>
+    <div class="eq">𝓛 = 𝓛<sub>act</sub> + λ 𝓛<sub>ct</sub> <span class="m">&nbsp;·&nbsp; rectified flow + <span class="c">contact BCE</span></span></div>
+  </div>
+</section>
+
+<section id="results">
+  <div class="wrap">
+    <div class="sec-mark">§ III · Results</div>
+    <h2>Fewer robot demos, same hands.</h2>
+    <p class="lede">Every method is fine-tuned as a single policy on the same human demonstrations plus 10%, 50% or 100% of the teleoperated demonstrations of each task, <i>i.e.</i>, up to 100 for Pick &amp; Place and 50 per bimanual task, on an RB-Y1 with two 20-DoF Wuji hands. ConAct leads on every task at every share, and its margin grows as the robot data shrinks: +13% relative to VITRA with all of it, +21% with 50% and +142% with 10%. With 10%, it already exceeds GR00T N1.7 trained with all of it on average (41.7% vs. 40.6%).</p>
+    <div class="tbl-wrap t1 fade-in">
+      <table aria-describedby="t1cap">
+        <thead>
+          <tr class="h0"><th></th><th colspan="3" class="g">Unimanual</th><th colspan="6" class="g">Bimanual</th><th colspan="3" class="g"></th></tr>
+          <tr class="h1"><th></th><th colspan="3" class="g">Pick &amp; Place</th><th colspan="3" class="g">Replace Tissue Roll</th><th colspan="3" class="g">Flip Plastic Bag</th><th colspan="3" class="g">Average</th></tr>
+          <tr class="h2"><th>Method</th><th class="g">10%</th><th class="">50%</th><th class="">100%</th><th class="g">10%</th><th class="">50%</th><th class="">100%</th><th class="g">10%</th><th class="">50%</th><th class="">100%</th><th class="g">10%</th><th class="">50%</th><th class="">100%</th></tr>
+        </thead>
+        <tbody><tr class=""><td>VITRA</td><td class="second g">39.1</td><td class="second">68.8</td><td class="second">82.8</td><td class=" g">6.3</td><td class="second">56.3</td><td class="second">59.4</td><td class=" g">6.3</td><td class="second">21.9</td><td class="second">50.0</td><td class="second g">17.2</td><td class="second">49.0</td><td class="second">64.1</td></tr><tr class=""><td>EgoVLA</td><td class=" g">14.1</td><td class="">42.2</td><td class="">64.1</td><td class="second g">12.5</td><td class="">15.6</td><td class="">50.0</td><td class="second g">12.5</td><td class="">15.6</td><td class="">43.8</td><td class=" g">13.0</td><td class="">24.5</td><td class="">52.6</td></tr><tr class=""><td>GR00T N1.7</td><td class=" g">15.6</td><td class="">39.1</td><td class="">56.3</td><td class="second g">12.5</td><td class="">25.0</td><td class="">34.4</td><td class=" g">9.4</td><td class="">15.6</td><td class="">31.3</td><td class=" g">12.5</td><td class="">26.6</td><td class="">40.6</td></tr><tr class="ours"><td>Ours</td><td class="best g">56.3</td><td class="best">87.5</td><td class="best">89.1</td><td class="best g">53.1</td><td class="best">62.5</td><td class="best">75.0</td><td class="best g">15.6</td><td class="best">28.1</td><td class="best">53.1</td><td class="best g">41.7</td><td class="best">59.4</td><td class="best">72.4</td></tr></tbody>
+      </table>
+    </div>
+    <p class="note fade-in" id="t1cap"><b>Table 1.</b> Success rate (%) with the same human demonstrations plus 10%, 50% or 100% of the teleoperated demonstrations of each task, <i>i.e.</i>, up to 100 for Pick &amp; Place and 50 per bimanual task. <span class="kb">best</span> and <span class="ks">second best</span> per column. Pick &amp; Place: 64 trials (16 per object); bimanual tasks: 16 trials, partial success counts 0.5.</p>
+    <div class="t23 fade-in">
+      <div>
+        <div class="tbl-wrap t1"><table class="small" aria-describedby="t2cap">
+          <thead><tr class="h1"><th>Method</th><th class="g">Training scene</th><th class="g">w/ distractor</th></tr></thead>
+          <tbody>
+            <tr><td>VITRA</td><td class="second g">39.1</td><td class="second g">6.3</td></tr>
+            <tr><td>EgoVLA</td><td class="g">14.1</td><td class="g">0.0</td></tr>
+            <tr><td>GR00T N1.7</td><td class="g">15.6</td><td class="g">0.0</td></tr>
+            <tr class="ours"><td>Ours</td><td class="best g">56.3</td><td class="best g">56.3</td></tr>
+          </tbody></table></div>
+        <p class="note" id="t2cap"><b>Table 2 · Generalization.</b> Pick &amp; Place with 10% of the teleoperation data, in the training scene and with an unseen distractor object at a random position. ConAct observes only the points of the named objects, so the segmenter keeps the distractor out of its observation.</p>
+      </div>
+      <div>
+        <div class="tbl-wrap t1"><table class="small" aria-describedby="t3cap">
+          <thead><tr class="h1"><th>Component</th><th>Variant</th><th class="g">Success</th></tr></thead>
+          <tbody>
+            <tr><td>Pretraining</td><td class="lft">w/o contact labels</td><td class="g">43.8</td></tr>
+            <tr><td>Contact labels</td><td class="lft">binary labels</td><td class="g">37.5</td></tr>
+            <tr><td>Deployment</td><td class="lft">w/o force injection (δ = 0)</td><td class="g">25.0</td></tr>
+            <tr class="ours"><td>Ours (full)</td><td></td><td class="best g">56.3</td></tr>
+          </tbody></table></div>
+        <p class="note" id="t3cap"><b>Table 3 · Ablation.</b> Pick &amp; Place with 10% of the teleoperation data. Weakening the contact labels in scale or in resolution costs 12.5 and 18.8 points; removing force injection costs 31.3 points, below VITRA's 39.1%.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="injection">
+  <div class="wrap">
+    <div class="sec-mark">§ IV · Contact-force injection</div>
+    <h2>Contact into force, without force sensing.</h2>
+    <div class="two iv">
+      <div>
+        <p class="lede">Point targets cannot express how firmly to press. So ConAct realizes contact by displacing the targets of inverse kinematics: each of the 21 keypoints is mapped to a site on the robot hand's kinematic model with a unit normal along the flexion direction of the motor that drives it, and each predicted keypoint moves along its normal in proportion to its predicted contact.</p>
+        <div class="eq">x̃<sub>k</sub> = x̂<sub>k</sub> + δ ĉ<sub>k</sub> n<sub>k</sub> <span class="m">&nbsp;·&nbsp; one δ shared by all keypoints, tasks and objects</span></div>
+        <ul class="facts">
+          <li><b>In contact</b><span>the target lies slightly beyond the object surface, so the position-controlled joints press the hand into the object with a force that grows with the intensity.</span></li>
+          <li><b>No heuristics</b><span>only the mapped sites and their normals are used, with contact-weighted IK; no hand-specific grip rules.</span></li>
+        </ul>
+      </div>
+      <div class="pcol fade-in">
+      <div class="pstage m" id="mStage">
+        <canvas id="mCanvas" aria-label="A MANO hand from a human box demonstration, coloured by the contact the hand tracker estimates at each vertex"></canvas>
+      </div>
+      <div class="pstage" id="pStage">
+        <canvas id="pCanvas" aria-label="Wuji Hand 2 with a contact arrow at each of its 21 keypoint sites, along the flexion direction of its motor or the palm normal"></canvas>
+      </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tasks">
+  <div class="wrap">
+    <div class="sec-mark">§ V · Tasks</div>
+    <h2>Four unimanual, two bimanual.</h2>
+    <p class="lede">A single ConAct policy performs all six tasks on the RB-Y1 with two Wuji hands, choosing the task from its language instruction. For each task, the strip shows the ego view the policy observes, and the video below is a third-person recording of the rollout, played at 2×.</p>
+    <div class="car fade-in" id="car" aria-roledescription="carousel" aria-label="Task rollouts">
+      <button type="button" class="nav prev" id="carPrev" aria-label="Previous task">‹</button>
+      <div class="track">
+        <div class="slide" id="slide-0" role="group" aria-roledescription="slide" aria-label="1 of 6: Gray ball">
+          <div class="shd"><div><span class="stag">Unimanual · pick &amp; place</span><h3>Gray ball</h3></div><span class="p">“pick up the gray ball and place it in the white container”</span></div>
+          <div class="strip"><img src="media/task_ball.jpg" alt="Six ego-view frames of Gray ball, left to right in time" loading="lazy"></div>
+          <div class="rv big"><video class="rvid" muted playsinline preload="metadata" data-parts="media/rollouts/ball.mp4" aria-label="Third-person video of a ConAct rollout: Gray ball"></video><span class="rtag">2×</span></div>
+        </div><div class="slide" id="slide-1" role="group" aria-roledescription="slide" aria-label="2 of 6: Black bottle" hidden>
+          <div class="shd"><div><span class="stag">Unimanual · pick &amp; place</span><h3>Black bottle</h3></div><span class="p">“pick up the black bottle and place it in the white container”</span></div>
+          <div class="strip"><img src="media/task_bottle.jpg" alt="Six ego-view frames of Black bottle, left to right in time" loading="lazy"></div>
+          <div class="rv big"><video class="rvid" muted playsinline preload="metadata" data-parts="media/rollouts/bottle.mp4" aria-label="Third-person video of a ConAct rollout: Black bottle"></video><span class="rtag">2×</span></div>
+        </div><div class="slide" id="slide-2" role="group" aria-roledescription="slide" aria-label="3 of 6: Blue box" hidden>
+          <div class="shd"><div><span class="stag">Unimanual · pick &amp; place</span><h3>Blue box</h3></div><span class="p">“pick up the blue box and place it in the white container”</span></div>
+          <div class="strip"><img src="media/task_box.jpg" alt="Six ego-view frames of Blue box, left to right in time" loading="lazy"></div>
+          <div class="rv big"><video class="rvid" muted playsinline preload="metadata" data-parts="media/rollouts/box.mp4" aria-label="Third-person video of a ConAct rollout: Blue box"></video><span class="rtag">2×</span></div>
+        </div><div class="slide" id="slide-3" role="group" aria-roledescription="slide" aria-label="4 of 6: Toy bird" hidden>
+          <div class="shd"><div><span class="stag">Unimanual · pick &amp; place</span><h3>Toy bird</h3></div><span class="p">“pick up the toy bird and place it in the white container”</span></div>
+          <div class="strip"><img src="media/task_doll.jpg" alt="Six ego-view frames of Toy bird, left to right in time" loading="lazy"></div>
+          <div class="rv big"><video class="rvid" muted playsinline preload="metadata" data-parts="media/rollouts/doll.mp4" aria-label="Third-person video of a ConAct rollout: Toy bird"></video><span class="rtag">2×</span></div>
+        </div><div class="slide" id="slide-4" role="group" aria-roledescription="slide" aria-label="5 of 6: Flip plastic bag" hidden>
+          <div class="shd"><div><span class="stag">Bimanual · same object in turn</span><h3>Flip plastic bag</h3></div><span class="p">“flip the plastic bag and move it to the right”</span></div>
+          <div class="strip"><img src="media/task_flip.jpg" alt="Six ego-view frames of Flip plastic bag, left to right in time" loading="lazy"></div>
+          <div class="rv big"><video class="rvid" muted playsinline preload="metadata" data-parts="media/rollouts/flip.mp4" aria-label="Third-person video of a ConAct rollout: Flip plastic bag"></video><span class="rtag">2×</span></div>
+        </div><div class="slide" id="slide-5" role="group" aria-roledescription="slide" aria-label="6 of 6: Replace tissue roll" hidden>
+          <div class="shd"><div><span class="stag">Bimanual · one object per hand</span><h3>Replace tissue roll</h3></div><span class="p">“remove the empty tissue roll and place the new roll”</span></div>
+          <div class="strip"><img src="media/task_tissue.jpg" alt="Six ego-view frames of Replace tissue roll, left to right in time" loading="lazy"></div>
+          <div class="rv big"><video class="rvid" muted playsinline preload="metadata" data-parts="media/rollouts/tissue.mp4" aria-label="Third-person video of a ConAct rollout: Replace tissue roll"></video><span class="rtag">2×</span></div>
+        </div>
+      </div>
+      <button type="button" class="nav next" id="carNext" aria-label="Next task">›</button>
+      <div class="dots"><button type="button" class="dot" id="dot-0" aria-label="Show Gray ball" aria-current="true"></button><button type="button" class="dot" id="dot-1" aria-label="Show Black bottle" aria-current="false"></button><button type="button" class="dot" id="dot-2" aria-label="Show Blue box" aria-current="false"></button><button type="button" class="dot" id="dot-3" aria-label="Show Toy bird" aria-current="false"></button><button type="button" class="dot" id="dot-4" aria-label="Show Flip plastic bag" aria-current="false"></button><button type="button" class="dot" id="dot-5" aria-label="Show Replace tissue roll" aria-current="false"></button><span class="cnt" id="carCnt">1 / 6</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="ablation-video">
+  <div class="wrap">
+    <div class="sec-mark">§ VI · Why contact</div>
+    <h2>Points alone stop at the surface.</h2>
+    <p class="lede">Without contact prediction and the contact-driven offset, the policy's action is only a set of points: the fingers reach the ball but close no further than its surface, so the grasp is too loose to lift it. With contact as part of the action, the same keypoints are pushed into the object and the hand holds it. On Pick &amp; Place with 10% of the teleoperation data, removing the force injection drops the success rate from 56.3% to 25.0%.</p>
+    <div class="ab fade-in">
+      <figure class="roll"><div class="rv"><video class="rvid" id="abOurs" muted playsinline preload="metadata" data-parts="media/rollouts/ball.mp4" aria-label="ConAct grasping the gray ball"></video><span class="rtag">2×</span></div><figcaption><b class="ok">ConAct</b> · points + contact</figcaption></figure>
+      <figure class="roll"><div class="rv"><video class="rvid" id="abWo" muted playsinline preload="metadata" data-parts="media/rollouts/ball_wo_contact.mp4" aria-label="The same policy without contact failing to hold the gray ball"></video><span class="rtag">2×</span></div><figcaption><b class="bad">w/o contact</b> · points only, no force injection</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section id="bibtex">
+  <div class="wrap">
+    <div class="sec-mark">§ VII · Citation</div>
+    <h2>BibTeX</h2>
+<pre class="bib fade-in" id="bib">@inproceedings{conact2027,
+  title     = {ConAct: Contact as Action for Learning Multi-Fingered
+               Robot Hand Policies from Human Videos},
+  author    = {Anonymous},
+  booktitle = {Under review},
+  year      = {2027}
+}</pre>
+    <button type="button" class="btn copy" id="copyBib">Copy BibTeX</button>
+  </div>
+</section>
+</main>
+<footer><div class="wrap">ConAct · anonymous project page · 2026</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TrackballControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
+<script>
+(() => {
+
+// reveal-on-scroll + counters (the SpaCeFormer page's motion); anything already on screen shows at once
+(function () {
+  const els = document.querySelectorAll(".fade-in"), reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce || !("IntersectionObserver" in window)) { els.forEach(e => e.classList.add("visible")); }
+  else { const io = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting) { en.target.classList.add("visible"); io.unobserve(en.target); } }), {threshold: 0.05});
+    els.forEach(e => { const r = e.getBoundingClientRect(); if (r.top < innerHeight && r.bottom > 0) e.classList.add("visible"); else io.observe(e); }); }
+  if (reduce) return;
+  document.querySelectorAll(".hud [data-target]").forEach(el => { const T = +el.dataset.target, d = +el.dataset.dec, t0 = performance.now() + 380;
+    const tick = now => { const p = Math.max(0, Math.min(1, (now - t0) / 1500)), e = 1 - Math.pow(1 - p, 3); el.textContent = (T * e).toFixed(d); if (p < 1) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick); });
+  // range fill: keep the coloured part of every slider in step with its value
+  const fill = r => r.style.setProperty("--p", ((r.value - r.min) / ((r.max - r.min) || 1) * 100) + "%");
+  document.querySelectorAll('input[type=range]').forEach(r => { fill(r); r.addEventListener("input", () => fill(r)); });
+  window.__rangeFill = fill;
+})();
+
+
+// rollout videos: the original encodes are fetched whole into memory (blob URLs) before they play, so 2x playback
+// never waits on the network; clips stored in parts play back to back. Only videos in view (and in the visible
+// carousel slide) play; after the current one is ready, the next carousel slide is prefetched.
+(function () {
+  const vids = [...document.querySelectorAll("video.rvid")], cache = new Map();
+  function fetchBlob(url) {
+    if (!cache.has(url)) cache.set(url, fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); }).then(b => URL.createObjectURL(b)));
+    return cache.get(url);
+  }
+  function badge(v, t) { let el = v.parentNode.querySelector(".vload"); if (!el) { el = document.createElement("span"); el.className = "vload"; v.parentNode.appendChild(el); } el.textContent = t; el.hidden = !t; }
+  function prepare(v) {
+    if (v._ready) return v._ready;
+    const parts = v.dataset.parts.split(" "); badge(v, "loading…");
+    v._ready = Promise.all(parts.map(fetchBlob)).then(urls => {
+      let k = 0; v._urls = urls;
+      const load = () => { v.src = urls[k]; v.defaultPlaybackRate = 2; v.playbackRate = 2; };
+      v.addEventListener("loadedmetadata", () => { v.playbackRate = 2; });
+      v.addEventListener("ended", () => { k = (k + 1) % urls.length; load(); v.play().catch(() => {}); });
+      load(); badge(v, "");
+    }).catch(() => { v.src = parts[0]; v.playbackRate = 2; badge(v, ""); });
+    return v._ready;
+  }
+  const wants = new Set();
+  function want(v, on) { if (on) { wants.add(v); prepare(v).then(() => { if (wants.has(v)) v.play().catch(() => {}); }); } else { wants.delete(v); v.pause(); } }
+  window.__vidWant = want; window.__vidPrepare = prepare;
+  if (!("IntersectionObserver" in window)) { vids.forEach(v => want(v, !v.closest("[hidden]"))); return; }
+  const io = new IntersectionObserver(es => es.forEach(e => want(e.target, e.isIntersecting && !e.target.closest("[hidden]"))), {threshold: 0.25});
+  vids.forEach(v => io.observe(v));
+})();
+
+
+// task carousel: arrows, dots, ←/→ when focused, swipe; only the visible slide's video plays
+(function () {
+  const car = document.getElementById("car"); if (!car) return;
+  const slides = [...car.querySelectorAll(".slide")], dots = [...car.querySelectorAll(".dot")]; let cur = 0;
+  function go(i) {
+    cur = (i + slides.length) % slides.length;
+    slides.forEach((s, k) => { s.hidden = k !== cur; const v = s.querySelector("video"); if (v && window.__vidWant) window.__vidWant(v, k === cur); });
+    const nv = slides[(cur + 1) % slides.length].querySelector("video"), cv = slides[cur].querySelector("video");
+    if (nv && cv && window.__vidPrepare) window.__vidPrepare(cv).then(() => window.__vidPrepare(nv));
+    dots.forEach((d, k) => d.setAttribute("aria-current", String(k === cur)));
+    document.getElementById("carCnt").textContent = `${cur + 1} / ${slides.length}`;
+  }
+  document.getElementById("carPrev").addEventListener("click", () => go(cur - 1));
+  document.getElementById("carNext").addEventListener("click", () => go(cur + 1));
+  dots.forEach((d, k) => d.addEventListener("click", () => go(k)));
+  car.tabIndex = 0; car.addEventListener("keydown", e => { if (e.key === "ArrowLeft") { go(cur - 1); e.preventDefault(); } if (e.key === "ArrowRight") { go(cur + 1); e.preventDefault(); } });
+  let x0 = null; car.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; }, {passive: true});
+  car.addEventListener("touchend", e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 40) go(cur + (dx < 0 ? 1 : -1)); x0 = null; });
+  window.__carGo = go;
+})();
+
+document.getElementById("copyBib").addEventListener("click", async e => {
+  const b = e.currentTarget, txt = document.getElementById("bib").textContent;
+  try { await navigator.clipboard.writeText(txt); b.textContent = "Copied"; }
+  catch { const r = document.createRange(); r.selectNodeContents(document.getElementById("bib")); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = "Selected — press ⌘C"; }
+  setTimeout(() => b.textContent = "Copy BibTeX", 1800);
+});
+
+// ────────────────────────────── 3D explorer (the paper-figure viewer, ported) ──────────────────────────────
+// Scene settings follow the figure viewer: 6 mm points at opacity 0.5, 0.6 m crop around the hands, objects in their
+// slot colours tinted by nearby contact, hands purple / green blending to red with contact (0 → 0.4), robot contact
+// ×1.5, a 2 s fading wrist trail. Episodes are 15 Hz packs (lossless RGB PNG parts) listed in data/index.json.
+const BONES = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20]];
+const HANDCOL = [0xb39bff, 0x3ee0a8], SLOTCOL = [0xff6a13, 0x2f8fff, 0xf2b705, 0xe04fd0];
+const TASKNAME = {ball:"Pick & place · ball", bottle:"Pick & place · bottle", box:"Pick & place · box", doll:"Pick & place · doll", flip_plastic_bag:"Flip plastic bag", assemble_tissue:"Replace tissue roll"};
+const CMAX = 0.4, CRAMP = [[0,0xfff1b8],[0.35,0xfdae61],[0.7,0xd7191c],[1,0x67000d]];
+const HRAMP = [[0,0x161a21],[0.3,0x5c1d14],[0.65,0xc2281d],[1,0xff6a4a]];   // heat strip on the dark ground: 0 = the ground
+const hramp = u => { u = Math.max(0, Math.min(1, u)); for (let i = 1; i < HRAMP.length; i++) if (u <= HRAMP[i][0]) { const a = HRAMP[i-1], b = HRAMP[i]; return new THREE.Color(a[1]).lerp(new THREE.Color(b[1]), (u - a[0]) / (b[0] - a[0])); } return new THREE.Color(HRAMP[3][1]); };
+const opt = {task:"assemble_tissue", kind:"human", pt:6, opa:0.5, crop:0.6, past:2, tw:2, cscale:1.8, rgb:true, obj:true};
+const $ = id => document.getElementById(id);
+const ramp = u => { u = Math.max(0, Math.min(1, u)); for (let i = 1; i < CRAMP.length; i++) if (u <= CRAMP[i][0]) { const a = CRAMP[i-1], b = CRAMP[i]; return new THREE.Color(a[1]).lerp(new THREE.Color(b[1]), (u - a[0]) / (b[0] - a[0])); } return new THREE.Color(CRAMP[3][1]); };
+const V = (x, y, z) => new THREE.Vector3(x / 1000, -y / 1000, -z / 1000);
+
+const stage = $("stage"), canvas = $("gl");
+if (!window.THREE || !THREE.TrackballControls) { $("loading").textContent = "The 3D viewer needs WebGL."; return; }
+
+// ---------- packs
+function decodePart(url, n) { return new Promise((res, rej) => { const im = new Image(); im.onload = () => {
+    const c = document.createElement("canvas"); c.width = im.width; c.height = im.height; const g = c.getContext("2d", {willReadFrequently: true}); g.drawImage(im, 0, 0);
+    const px = g.getImageData(0, 0, im.width, im.height).data, u = new Uint8Array(n);
+    for (let i = 0, j = 0; j < n; i += 4) { u[j++] = px[i]; if (j < n) u[j++] = px[i+1]; if (j < n) u[j++] = px[i+2]; } res(u); };
+  im.onerror = () => rej(new Error("could not load " + url)); im.src = url; }); }
+const PACKS = {};
+async function loadPack(ep) {
+  if (PACKS[ep.key]) return PACKS[ep.key];
+  const parts = await Promise.all(ep.urls.map((u, i) => decodePart(u, ep.parts[i])));
+  const all = new Uint8Array(ep.bytes); let o = 0; for (const p of parts) { all.set(p, o); o += p.length; }
+  const buf = all.buffer, frames = []; let off = 0;
+  for (let i = 0; i < ep.F; i++) { const n = ep.counts[i]; frames.push({n, xyz:new Int16Array(buf, off, n*3), rgb:new Uint8Array(buf, off + n*6, n*3), seg:new Uint8Array(buf, off + n*9, n)}); off += n * 10; }
+  const F = ep.F, hands = new Int16Array(buf.slice(off, off + F*252)); off += F*252; const hv = new Uint8Array(buf, off, F*2); off += F*2;
+  off += F*16*252 + F*32;                                  // future chunks (unused here)
+  const con = new Uint8Array(buf, off, F*42);
+  return (PACKS[ep.key] = {frames, hands, hv, con});
+}
+const joints = (A, base) => { const J = []; for (let j = 0; j < 21; j++) J.push(V(A[base+j*3], A[base+j*3+1], A[base+j*3+2])); return J; };
+
+// ---------- renderer
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true}); renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1)); renderer.setClearColor(0x000000, 1);
+const camera = new THREE.PerspectiveCamera(42, 16/10, 0.005, 20);
+const controls = new THREE.TrackballControls(camera, canvas);     // free rotation in every direction
+controls.rotateSpeed = 2.2; controls.zoomSpeed = 1.1; controls.panSpeed = 0.6; controls.staticMoving = false; controls.dynamicDampingFactor = 0.18;
+controls.minDistance = 0.08; controls.maxDistance = 3;
+const scene = new THREE.Scene(); scene.add(new THREE.AmbientLight(0xffffff, 0.75)); const dl = new THREE.DirectionalLight(0xffffff, 0.55); dl.position.set(0.3, 1, 0.6); scene.add(dl);
+const root = new THREE.Group(); scene.add(root);
+// Persistent scene objects, updated in place every frame (rebuilding ~200 meshes per frame stalled playback).
+const SPH = new THREE.SphereGeometry(1, 14, 10), CYL = new THREE.CylinderGeometry(1, 1, 1, 10);   // shared unit shapes
+const CAPN = 24000, UP = new THREE.Vector3(0, 1, 0);
+function cloudLayer(order) { const g = new THREE.BufferGeometry(), pos = new Float32Array(CAPN * 3), col = new Float32Array(CAPN * 3);
+  g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(col, 3)); g.setDrawRange(0, 0);
+  const p = new THREE.Points(g, new THREE.PointsMaterial({size:0.006, sizeAttenuation:true, vertexColors:true, transparent:true, opacity:0.5, depthWrite:false}));
+  p.frustumCulled = false; p.renderOrder = order; root.add(p); return {p, g, pos, col}; }
+const L_BG = cloudLayer(0), L_OB = cloudLayer(1);
+const TRAILN = 80;                                               // up to 5 s at 15 Hz
+const HANDS = [0, 1].map(h => {
+  const bm = new THREE.MeshStandardMaterial({color:HANDCOL[h], roughness:0.45, metalness:0.05});
+  const bones = BONES.map(() => { const m = new THREE.Mesh(CYL, bm); m.renderOrder = 3; root.add(m); return m; });
+  const joints = [...Array(21)].map(() => { const m = new THREE.Mesh(SPH, new THREE.MeshStandardMaterial({color:HANDCOL[h], roughness:0.4})); m.renderOrder = 3; root.add(m); return m; });
+  const trail = [...Array(TRAILN)].map(() => { const m = new THREE.Mesh(CYL, new THREE.MeshStandardMaterial({color:HANDCOL[h], roughness:0.5, transparent:true, opacity:1, depthWrite:false})); m.renderOrder = 2; m.visible = false; root.add(m); return m; });
+  const knots = [...Array(TRAILN)].map((_, k) => { const m = new THREE.Mesh(SPH, trail[k].material); m.renderOrder = 2; m.visible = false; root.add(m); return m; });
+  return {bm, bones, joints, trail, knots};
+});
+function place(m, a, c, r) { const L = a.distanceTo(c); if (L < 1e-5) { m.visible = false; return; } m.visible = true; m.scale.set(r, L, r);
+  m.position.copy(a).add(c).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(UP, c.clone().sub(a).normalize()); }
+let INDEX = [], cur = null, fi = 0, npts = 0;
+const refDist = {};
+function center(ep) { return V(ep.center[0], ep.center[1], ep.center[2]); }
+function egoView() { if (!cur) return; const t = center(cur); camera.up.set(0, 1, 0); camera.position.set(0, 0.02, 0.05); camera.lookAt(t); controls.target.copy(t);
+  refDist[cur.key] = camera.position.distanceTo(t); controls.update(); showZoom(); }
+function zoomNow() { if (!cur) return 100; const r = refDist[cur.key] || 1; return r / Math.max(1e-6, camera.position.distanceTo(controls.target)) * 100; }
+function showZoom() { const z = zoomNow(); $("rZoom").value = Math.max(25, Math.min(400, z)); window.__rangeFill && window.__rangeFill($("rZoom")); $("vZoom").textContent = Math.round(z) + "%"; }
+
+function build() {
+  if (!cur || !PACKS[cur.key]) return; const ep = cur, pk = PACKS[ep.key], f = pk.frames[fi];
+  const pred = ep.contact_source === "pred", C = [[], []];
+  for (let h = 0; h < 2; h++) for (let j = 0; j < 21; j++) C[h].push(Math.min(1, pk.con[fi*42 + h*21 + j] / 255 * (pred ? opt.cscale : 1)));
+  const tgt = center(ep), r2 = opt.crop * opt.crop, tmp = new THREE.Color();
+  const CJ = []; for (let h = 0; h < 2; h++) { if (!pk.hv[fi*2 + h]) continue; const J = joints(pk.hands, fi*126 + h*63); for (let j = 0; j < 21; j++) if (C[h][j] > 0.03) CJ.push([J[j], C[h][j]]); }
+  const P = f.xyz, R = f.rgb, S = f.seg; let nb = 0, no = 0;
+  for (let i = 0; i < f.n; i++) {
+    const x = P[i*3] / 1000, y = -P[i*3+1] / 1000, z = -P[i*3+2] / 1000, dx = x - tgt.x, dy = y - tgt.y, dz = z - tgt.z; if (dx*dx + dy*dy + dz*dz > r2) continue;
+    if (S[i] > 0 && opt.obj) { tmp.setHex(SLOTCOL[(S[i] - 1) % SLOTCOL.length]);
+      if (CJ.length) { let best = 0; for (const [p, c] of CJ) { const ex = x - p.x, ey = y - p.y, ez = z - p.z, w = c * Math.exp(-(ex*ex + ey*ey + ez*ez) / (2 * 0.012 * 0.012)); if (w > best) best = w; }
+        if (best > 0.02) tmp.lerp(ramp(best / CMAX), Math.min(1, 0.35 + best / CMAX)); }
+      L_OB.pos.set([x, y, z], no * 3); L_OB.col.set([tmp.r, tmp.g, tmp.b], no * 3); no++; continue; }
+    L_BG.pos[nb*3] = x; L_BG.pos[nb*3+1] = y; L_BG.pos[nb*3+2] = z;
+    if (opt.rgb) { L_BG.col[nb*3] = R[i*3] / 255; L_BG.col[nb*3+1] = R[i*3+1] / 255; L_BG.col[nb*3+2] = R[i*3+2] / 255; } else L_BG.col.set([0.79, 0.81, 0.8], nb * 3);
+    nb++;
+  }
+  npts = nb + no;
+  for (const [L, n, sz, op] of [[L_BG, nb, opt.pt / 1000, opt.opa], [L_OB, no, opt.pt * 1.15 / 1000, Math.min(1, opt.opa + 0.5)]]) {
+    L.g.setDrawRange(0, n); L.g.attributes.position.needsUpdate = true; L.g.attributes.color.needsUpdate = true; L.p.material.size = sz; L.p.material.opacity = op; }
+  for (let h = 0; h < 2; h++) {
+    const H = HANDS[h], on = !!pk.hv[fi*2 + h];
+    for (const m of [...H.bones, ...H.joints]) m.visible = on;
+    const NB = Math.round(opt.past * ep.fps), wp = [];                    // past wrist, oldest first, fading in
+    if (on) {
+      const J = joints(pk.hands, fi*126 + h*63);
+      BONES.forEach(([a, b], k) => place(H.bones[k], J[a], J[b], 0.0028));
+      for (let j = 0; j < 21; j++) { const cu = Math.min(1, C[h][j] / CMAX), rr = (j === 0 ? 0.0065 : 0.0045) * (1 + 0.9 * cu), m = H.joints[j];
+        m.material.color.setHex(HANDCOL[h]).lerp(new THREE.Color(0xd7191c), cu); m.scale.setScalar(rr); m.position.copy(J[j]); }
+      for (let k = Math.min(NB, fi); k >= 1; k--) { const g = fi - k; if (pk.hv[g*2 + h]) { const b = g*126 + h*63; wp.push(V(pk.hands[b], pk.hands[b+1], pk.hands[b+2])); } }
+      wp.push(J[0]);
+    }
+    const r = opt.tw / 1000, S2 = wp.length - 1;
+    for (let k = 0; k < TRAILN; k++) {
+      const seg = H.trail[k], kn = H.knots[k];
+      if (k >= S2) { seg.visible = false; kn.visible = false; continue; }
+      const a = (k + 0.5) / S2; seg.material.opacity = a; seg.material.depthWrite = a >= 0.999;
+      place(seg, wp[k], wp[k + 1], r); kn.visible = true; kn.position.copy(wp[k + 1]); kn.scale.setScalar(r);
+    }
+  }
+}
+
+// ---------- page
+const hex = n => "#" + n.toString(16).padStart(6, "0");
+function legend() { const L = $("legend"); L.innerHTML = ""; if (!cur) return;
+  const items = [["left hand", HANDCOL[0]], ["right hand", HANDCOL[1]], ...cur.objects.map((o, i) => [o, SLOTCOL[i % SLOTCOL.length]])];
+  for (const [t, c] of items) { const s = document.createElement("span"); s.innerHTML = `<i style="background:${hex(c)}"></i>`; s.appendChild(document.createTextNode(t)); L.appendChild(s); }
+  const s = document.createElement("span"); s.className = "cr"; s.innerHTML = `<em></em>${cur.contact_source === "pred" ? "predicted" : "labelled"} contact`; L.appendChild(s); }
+const heat = $("heat"), hctx = heat.getContext("2d"); let heatImg = null;
+function buildHeat() { const pk = PACKS[cur.key], F = cur.F, rows = 43, k = cur.contact_source === "pred" ? opt.cscale : 1; heatImg = hctx.createImageData(F, rows);
+  for (let x = 0; x < F; x++) for (let r = 0; r < rows; r++) { const i = 4 * (r * F + x); if (r === 21) { heatImg.data.set([8, 10, 13, 255], i); continue; }
+    const h = r < 21 ? 0 : 1, j = r < 21 ? r : r - 22, c = Math.min(1, pk.con[x*42 + h*21 + j] / 255 * k) / CMAX, col = hramp(c);
+    heatImg.data.set([col.r * 255, col.g * 255, col.b * 255, 255], i); }
+  heat.width = F; heat.height = rows; $("heatEnd").textContent = `${(F / cur.fps).toFixed(1)} s`; }
+function drawHeat() { if (!heatImg) return; hctx.putImageData(heatImg, 0, 0); hctx.fillStyle = "rgba(79,230,210,.95)"; hctx.fillRect(fi, 0, 1, heat.height); }
+function show() { if (!cur) return;
+  try { build(); renderer.render(scene, camera); $("tagErr").hidden = true; }
+  catch (err) { $("tagErr").hidden = false; $("tagErr").textContent = "render error: " + (err && err.message || err); console.error(err); } const t = fi / cur.fps;
+  $("tagT").textContent = `t = ${t.toFixed(1)} s`; $("tagF").textContent = `frame ${fi + 1} / ${cur.F}`; $("tagN").textContent = npts.toLocaleString();
+  $("rFrame").value = fi; window.__rangeFill && window.__rangeFill($("rFrame")); $("heatNow").textContent = `${t.toFixed(1)} s`; drawHeat();
+  const v = $("rgb"), want = (fi + 0.5) / cur.fps; if (v.readyState >= 1 && Math.abs(v.currentTime - want) > (playing ? 0.35 : 0.09)) v.currentTime = want; }
+function seek(f) { if (!cur) return; fi = Math.max(0, Math.min(cur.F - 1, f)); show(); }
+async function select() {
+  const ep = INDEX.find(e => e.cat === opt.task && e.kind === opt.kind); if (!ep) return; $("loading").hidden = false; $("loading").textContent = "Loading episode…";
+  try { await loadPack(ep); } catch (err) { $("loading").textContent = "Could not load the episode — refresh to retry."; return; }
+  const first = !cur || cur.key !== ep.key; cur = ep; $("loading").hidden = true; fi = 0;
+  $("rFrame").max = ep.F - 1; window.__rangeFill && window.__rangeFill($("rFrame")); $("prompt").textContent = `“${ep.instruction}”`; $("tagTask").textContent = TASKNAME[ep.cat];
+  $("tagKind").textContent = ep.kind === "human" ? "human · label" : "robot · predicted";
+  const v = $("rgb"); v.src = ep.rgb_url; v.load();
+  legend(); buildHeat(); if (first) egoView(); show(); }
+function wireSeg(id, key) { $(id).addEventListener("click", ev => { const b = ev.target.closest("button"); if (!b) return;
+  for (const x of b.parentNode.children) x.setAttribute("aria-pressed", String(x === b)); opt[key] = b.dataset[key]; select(); }); }
+wireSeg("taskSeg", "task"); wireSeg("kindSeg", "kind");
+$("rFrame").addEventListener("input", e => { setPlay(false); seek(+e.target.value); });
+heat.addEventListener("pointerdown", ev => { setPlay(false); const go = e2 => { const r = heat.getBoundingClientRect(); seek(Math.floor((e2.clientX - r.left) / r.width * cur.F)); };
+  go(ev); const up = () => { removeEventListener("pointermove", go); removeEventListener("pointerup", up); }; addEventListener("pointermove", go); addEventListener("pointerup", up); });
+$("bEgo").addEventListener("click", egoView);
+$("rZoom").addEventListener("input", e => { if (!cur) return; const d = (refDist[cur.key] || 1) / (+e.target.value / 100), dir = camera.position.clone().sub(controls.target).normalize();
+  camera.position.copy(controls.target).add(dir.multiplyScalar(d)); $("vZoom").textContent = e.target.value + "%"; });
+controls.addEventListener("change", showZoom);
+const playBtn = $("play"); let playing = false, acc = 0, last = 0;
+// playback runs on its own 15 Hz timer (a hidden or throttled animation frame must not stall it); show() renders directly
+let timer = null;
+function tick() { if (!cur || !playing) return; fi = (fi + 1) % cur.F; show(); }
+function setPlay(p) { playing = p; clearInterval(timer); timer = p ? setInterval(tick, 1000 / (cur ? cur.fps : 15)) : null; const v = $("rgb"); try { p ? v.play().catch(() => {}) : v.pause(); } catch (e) {} playBtn.textContent = p ? "❚❚" : "▶"; playBtn.setAttribute("aria-label", p ? "Pause" : "Play"); }
+playBtn.addEventListener("click", () => { if (cur && !playing && fi >= cur.F - 1) fi = 0; setPlay(!playing); });
+document.addEventListener("keydown", e => { if (!cur || (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) && e.target.type !== "range")) return;
+  if (e.key === "ArrowLeft") { setPlay(false); seek(fi - 1); e.preventDefault(); } if (e.key === "ArrowRight") { setPlay(false); seek(fi + 1); e.preventDefault(); } });
+function resize() { const w = stage.clientWidth, h = stage.clientHeight; if (w < 2 || h < 2) return; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); controls.handleResize(); }
+new ResizeObserver(resize).observe(stage); resize();
+let visible = true, lost = false;
+canvas.addEventListener("webglcontextlost", ev => { ev.preventDefault(); lost = true; }, false);
+canvas.addEventListener("webglcontextrestored", () => { lost = false; resize(); show(); }, false);
+function loop(ts) {
+  requestAnimationFrame(loop); const dt = Math.min(200, ts - (last || ts)); last = ts;
+  if (lost) return;
+  controls.update(); renderer.render(scene, camera);
+}
+if (!matchMedia("(prefers-reduced-motion: reduce)").matches) setPlay(true);
+requestAnimationFrame(loop);
+fetch("data/index.json").then(r => r.json()).then(idx => { INDEX = idx; select(); }).catch(() => { $("loading").textContent = "Could not load the episode list — refresh to retry."; });
+
+})();
+</script>
+<script>
+// ────────────── hands: scroll-driven MANO ↔ Wuji stage (abstract) and the 3D pad figure (§ IV) ──────────────
+// Meshes come from media/hands.json: MANO (relaxed mean pose) and Wuji Hand 2 (gentle grasp), both expressed in a
+// palm frame (x: wrist → middle MCPs, z: palm normal on the flexion side), plus contact arrows.
+(function () {
+  if (!window.THREE) return;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const b64 = (s, T) => { const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return new T(u.buffer); };
+  const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x)), ease = t => 1 - Math.pow(1 - t, 3);
+  const hands = fetch("media/hands.json").then(r => r.json());
+
+  function geom(h) { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(b64(h.pos, Float32Array), 3));
+    g.setIndex(new THREE.BufferAttribute(b64(h.idx, Uint32Array), 1)); g.computeVertexNormals(); return g; }
+  function stage(canvas) {
+    const r = new THREE.WebGLRenderer({canvas, antialias: true, alpha: true}); r.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+    r.outputEncoding = THREE.sRGBEncoding; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 0.78;
+    const sc = new THREE.Scene();
+    if (THREE.RoomEnvironment) { const pm = new THREE.PMREMGenerator(r); sc.environment = pm.fromScene(new THREE.RoomEnvironment(), 0.04).texture; sc.userData.env = true; }
+    sc.add(new THREE.HemisphereLight(0xdfe8ff, 0x0b0d12, 0.55));
+    const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(0.4, 0.8, 1.0); sc.add(key);
+    const rim = new THREE.DirectionalLight(0x4fe6d2, 0.9); rim.position.set(-0.8, 0.3, -0.9); sc.add(rim);
+    const cam = new THREE.PerspectiveCamera(30, 1, 0.01, 10);
+    const fit = () => { const w = canvas.clientWidth, h = canvas.clientHeight; if (w < 2 || h < 2) return; r.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); };
+    new ResizeObserver(fit).observe(canvas); fit();
+    return {r, sc, cam, fit};
+  }
+  function arrow(o, d, len, color, rad) {
+    const g = new THREE.Group(), mat = new THREE.MeshBasicMaterial({color, toneMapped: false});   // arrows keep their exact colour
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, 1, 12), mat), head = new THREE.Mesh(new THREE.ConeGeometry(rad * 2.6, rad * 6, 18), mat);
+    g.add(shaft, head); g.position.set(...o); g.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(...d).normalize());
+    g.userData.set = s => { const L = Math.max(1e-4, len * s); shaft.scale.set(1, L, 1); shaft.position.y = L / 2; head.position.y = L + rad * 3; head.visible = s > 0.02; shaft.visible = s > 0.02; };
+    g.userData.set(1); return g;
+  }
+  const RED = 0xff5a3c, CYAN = 0x4fe6d2;
+  const CSTOPS = [[0, 0x2a2f38], [0.35, 0x7a2413], [0.7, 0xe0381c], [1, 0xffb08a]];      // contact 0 → 1, shared by human and robot
+  function cramp(u) { u = clamp(u); let k = 1; while (k < CSTOPS.length - 1 && u > CSTOPS[k][0]) k++; const [a0, c0] = CSTOPS[k - 1], [a1, c1] = CSTOPS[k];
+    return new THREE.Color(c0).lerp(new THREE.Color(c1), clamp((u - a0) / (a1 - a0))).convertSRGBToLinear(); }
+  // upright: wrist down, fingers up, palm toward the viewer; the hand then spins about its own long (finger) axis
+  const UPRIGHT = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0, 1)));
+  function holder(inner) { const spin = new THREE.Group(), tilt = new THREE.Group(); inner.quaternion.copy(UPRIGHT); spin.add(inner); tilt.add(spin); return {tilt, spin}; }
+
+  // ---------- abstract stage: MANO (left) and Wuji (right), upright right hands. Real contact plays on both:
+  // the tracker's labels of 6 human demos per MANO vertex, and the same labels pooled to the 21 Wuji sites, in sync.
+  // Near the text the palms face the viewer and hold; they turn only once the section moves farther away.
+  const hc = document.getElementById("hCanvas");
+  if (hc) Promise.all([hands, fetch("media/contact_clip.json").then(r => r.json())]).then(([H, CL]) => {
+    const S = stage(hc), mano = new THREE.Group(), wuji = new THREE.Group();
+    const mg = geom(H.mano), nv = H.mano.nv, mcol = new Float32Array(nv * 3); mg.setAttribute("color", new THREE.BufferAttribute(mcol, 3));
+    const skin = new THREE.Color(0xa87f6a).convertSRGBToLinear();
+    mano.add(new THREE.Mesh(mg, new THREE.MeshStandardMaterial({vertexColors: true, roughness: 0.7, metalness: 0.0, envMapIntensity: 0.2})));
+    // contact glow: the same mesh drawn unlit and additively on top, so the human contact reads as vividly as the robot sites
+    const gg = new THREE.BufferGeometry(); gg.setAttribute("position", mg.attributes.position); gg.setIndex(mg.index);
+    const gcol = new Float32Array(nv * 3); gg.setAttribute("color", new THREE.BufferAttribute(gcol, 3));
+    const glow = new THREE.Mesh(gg, new THREE.MeshBasicMaterial({vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -1}));
+    glow.renderOrder = 2; mano.add(glow);
+    wuji.add(new THREE.Mesh(geom(H.wuji), new THREE.MeshStandardMaterial({color: 0x1d2229, roughness: 0.34, metalness: 0.7, envMapIntensity: 0.55})));
+    const ORDER = ["wrist","thumb_cmc","thumb_mcp","thumb_ip","thumb_tip","index_mcp","index_pip","index_dip","index_tip","middle_mcp","middle_pip","middle_dip","middle_tip","ring_mcp","ring_pip","ring_dip","ring_tip","little_mcp","little_pip","little_dip","little_tip"];
+    const sites = H.wuji.pads21.map(p => { const A = arrow(p.o, p.d, 0.04, 0xffffff, 0.0024), dot = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), new THREE.MeshBasicMaterial({color: 0xffffff, toneMapped: false}));
+      dot.position.set(...p.o); wuji.add(A, dot); return {k: ORDER.indexOf(p.k), A, dot}; });
+    const L = holder(mano), R = holder(wuji); S.sc.add(L.tilt, R.tilt);
+    const Hc = b64(CL.mano, Uint8Array), Wc = b64(CL.c21, Uint8Array), N = CL.n, rate = CL.src_hz * CL.play, t0 = performance.now();   // one clock for both hands
+    const ON = 0.08, FULL = 0.45;                                         // both hands: colour starts at ON, is full at FULL
+    function paint(t) {
+      const x = (t * rate) % N, f0 = Math.floor(x), f1 = (f0 + 1) % N, a = x - f0, tmp = new THREE.Color();   // interpolated between samples
+      for (let i = 0; i < nv; i++) { const u = ((1 - a) * Hc[f0 * nv + i] + a * Hc[f1 * nv + i]) / 255, w = clamp((u - ON) / (FULL - ON)); tmp.copy(skin).lerp(cramp(u), w); mcol[i * 3] = tmp.r; mcol[i * 3 + 1] = tmp.g; mcol[i * 3 + 2] = tmp.b;
+        const gc = cramp(u); gcol[i * 3] = gc.r * w * 0.85; gcol[i * 3 + 1] = gc.g * w * 0.85; gcol[i * 3 + 2] = gc.b * w * 0.85; }
+      mg.attributes.color.needsUpdate = true; gg.attributes.color.needsUpdate = true;
+      for (const s of sites) { const c = ((1 - a) * Wc[f0 * 21 + s.k] + a * Wc[f1 * 21 + s.k]) / 255, col = cramp(c), w = clamp((c - ON) / (FULL - ON));
+        s.dot.visible = w > 0; s.dot.scale.setScalar(0.0012 + 0.0055 * w); s.dot.material.color.copy(col);
+        s.A.userData.set(w); s.A.traverse(o => { if (o.material) o.material.color.copy(col); }); }
+    }
+    const fit = () => { const w = hc.clientWidth, h = hc.clientHeight; if (w < 2 || h < 2) return; const tan = Math.tan(THREE.MathUtils.degToRad(S.cam.fov / 2)), asp = w / h;
+      const d = Math.max(0.3 / (2 * tan), 0.42 / (2 * tan * asp)); S.cam.position.set(0, 0, d); S.cam.lookAt(0, 0, 0); };   // fits ~0.42 m × 0.30 m
+    new ResizeObserver(fit).observe(hc); fit();
+    const labs = ["hLabTop", "hLabBot", "hLabMid"].map(id => document.getElementById(id)), txt = document.querySelector("#abstract .abs-text");
+    // s: offset of the text's centre from the viewport centre, in viewport heights (+ below, − above)
+    function offset() { const rc = txt.getBoundingClientRect(); return (rc.top + rc.height / 2 - innerHeight / 2) / innerHeight; }
+    const HOLD = 0.22;
+    function pose(sv) {
+      const inT = ease(clamp((0.75 - sv) / 0.3));                       // rises in as the text approaches
+      const far = Math.max(0, Math.abs(sv) - HOLD), turn = ease(clamp(far / 0.45));
+      const H0 = Math.PI / 6;                                                // the held pose: palms turned 30°
+      const th = sv > 0 ? H0 - (0.5 * Math.PI + H0) * turn : H0 + (Math.PI - H0) * turn;   // coming: from the side; leaving: toward the back
+      L.tilt.position.set(-0.092, -0.004 - (1 - inT) * 0.1, 0); R.tilt.position.set(0.068, -0.004 - (1 - inT) * 0.1, 0);   // side by side; Wuji's thumb reaches right
+      for (const T of [L, R]) T.spin.rotation.y = th;
+      for (const g of [mano, wuji]) g.traverse(o => { if (o.material && o.isMesh) { o.material.transparent = inT < 1; o.material.opacity = inT; } });
+      labs.forEach(l => l.classList.toggle("on", inT > 0.7));
+    }
+    let last = 1e9;
+    (function loop(t) { requestAnimationFrame(loop); const sv = reduce ? 0 : offset(); if (Math.abs(sv - last) > 1e-4) { pose(sv); last = sv; } paint((t - t0) / 1000); S.r.render(S.sc, S.cam); })(t0);
+  });
+
+  // ---------- § IV pad figure
+  const pc = document.getElementById("pCanvas");
+  if (pc) hands.then(H => {
+    const S = stage(pc), g = new THREE.Group();
+    g.add(new THREE.Mesh(geom(H.wuji), new THREE.MeshStandardMaterial({color: 0x1d2229, roughness: 0.32, metalness: 0.75, envMapIntensity: 0.55})));
+    // contact of each site = the human label of the same demo frame (box, frame 220), pooled to the 21 keypoints as in training
+    const C21 = {"wrist": 0.127, "thumb_cmc": 0.073, "thumb_mcp": 0.358, "thumb_ip": 0.954, "thumb_tip": 0.966, "index_mcp": 0.884, "index_pip": 0.748, "index_dip": 0.713, "index_tip": 0.871, "middle_mcp": 0.164, "middle_pip": 0.439, "middle_dip": 0.74, "middle_tip": 0.668, "ring_mcp": 0.099, "ring_pip": 0.339, "ring_dip": 0.796, "ring_tip": 0.678, "little_mcp": 0.064, "little_pip": 0.111, "little_dip": 0.356, "little_tip": 0.396};   // label pooling (mean) shown on the same colour scale as the vertices (/ 0.45)
+    for (const p of H.wuji.pads21) {
+      const c = C21[p.k] ?? 0, col = cramp(c);
+      const A = arrow(p.o, p.d, 0.004 + 0.028 * c, 0xffffff, 0.0012 + 0.0018 * c); A.traverse(o => { if (o.material) o.material.color.copy(col); }); g.add(A);
+      const dot = new THREE.Mesh(new THREE.SphereGeometry(0.0022 + 0.004 * c, 16, 12), new THREE.MeshBasicMaterial({color: col, toneMapped: false})); dot.position.set(...p.o); g.add(dot);
+    }
+    const T = holder(g); T.tilt.rotation.x = -Math.PI / 4; T.tilt.position.set(0, -0.005, 0); S.sc.add(T.tilt);
+    S.cam.position.set(0, 0.0, 0.6); S.cam.lookAt(0, 0, 0);
+    let spin0 = 0, drag = null, t0 = performance.now(), paused = 0;
+    pc.addEventListener("pointerdown", e => { drag = [e.clientX, spin0]; pc.setPointerCapture(e.pointerId); pc.style.cursor = "grabbing"; });
+    pc.addEventListener("pointermove", e => { if (drag) spin0 = drag[1] + (e.clientX - drag[0]) * 0.012; });
+    pc.addEventListener("pointerup", () => { drag = null; pc.style.cursor = "grab"; });
+    (function loop(t) { requestAnimationFrame(loop); if (!drag && !reduce) spin0 += 0.006; T.spin.rotation.y = spin0; S.r.render(S.sc, S.cam); })(t0);
+  });
+  // ---------- § IV measured contact on the MANO hand (tracker labels of a human box demo)
+  const mc = document.getElementById("mCanvas");
+  if (mc) fetch("media/mano_contact.json").then(r => r.json()).then(D => {
+    const S = stage(mc), g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(b64(D.pos, Float32Array), 3)); g.setIndex(new THREE.BufferAttribute(b64(D.idx, Uint32Array), 1)); g.computeVertexNormals();
+    const c = b64(D.c, Uint8Array), col = new Float32Array(c.length * 3);
+    for (let i = 0; i < c.length; i++) { const t = cramp(c[i] / 255); col.set([t.r, t.g, t.b], i * 3); }   // vertex colours are linear
+    g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({vertexColors: true, roughness: 0.65, metalness: 0.0, envMapIntensity: 0.15}));
+    const T = holder(mesh); T.tilt.rotation.x = -Math.PI / 4; S.sc.add(T.tilt); S.cam.position.set(0, 0, 0.5); S.cam.lookAt(0, 0, 0);
+    let spin0 = 0, drag = null;
+    mc.addEventListener("pointerdown", e => { drag = [e.clientX, spin0]; mc.setPointerCapture(e.pointerId); });
+    mc.addEventListener("pointermove", e => { if (drag) spin0 = drag[1] + (e.clientX - drag[0]) * 0.012; });
+    mc.addEventListener("pointerup", () => { drag = null; });
+    (function loop() { requestAnimationFrame(loop); if (!drag && !reduce) spin0 += 0.006; T.spin.rotation.y = spin0; S.r.render(S.sc, S.cam); })();
+  });
+
+})();
+</script>
+
+
+</body>
+</html>
